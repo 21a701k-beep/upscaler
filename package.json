@@ -1,0 +1,30 @@
+{
+  "name": "upscaler",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@sentry/react": "^11.10.0",
+    "client-zip": "^2.5.1",
+    "onnxruntime-web": "^1.32.0-dev.20261030-b5fe413d0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/browser-playwright": "^5.0.5",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "playwright": "^1.64.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

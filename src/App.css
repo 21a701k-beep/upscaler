@@ -1,0 +1,609 @@
+:root {
+  color-scheme: light dark;
+  accent-color: #007aff;
+  --bg: #ececec;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --control: #ffffff;
+  --panel: rgb(0 0 0 / 0.035);
+  --border: rgb(0 0 0 / 0.15);
+  --track: rgb(0 0 0 / 0.1);
+  --accent: #007aff;
+  --danger: #d70015;
+  --tooltip-bg: #1d1d1f;
+  --tooltip-text: #f5f5f7;
+  --focus-ring: 3px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1e;
+    --text: #f5f5f7;
+    --muted: #98989d;
+    --control: #3a3a3c;
+    --panel: rgb(255 255 255 / 0.04);
+    --border: rgb(255 255 255 / 0.12);
+    --track: rgb(255 255 255 / 0.12);
+    --accent: #0a84ff;
+    --danger: #ff453a;
+    --tooltip-bg: #f5f5f7;
+    --tooltip-text: #1d1d1f;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+/* Exactly the window's height, so the tool above the footer can cap itself and let the results list
+   scroll. On very short screens (phones in landscape) the 700px floor makes the page scroll instead of
+   squeezing the list away. */
+#root {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: max(100dvh, 700px);
+}
+
+/* Centered in the space above the footer and never taller than it: the results list shrinks and scrolls. */
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
+  max-height: 100%;
+  margin: auto;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+/* One narrow column; the viewer dialog sizes itself. */
+main > :not(dialog) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 520px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lockup img {
+  display: block;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 32px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--track);
+}
+
+.segmented label {
+  position: relative;
+  min-width: 56px;
+  padding: 3px 12px;
+  border-radius: 5px;
+  cursor: default;
+}
+
+.segmented label:has(input:checked) {
+  background: var(--control);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15), 0 0 0 0.5px var(--border);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: var(--focus-ring);
+}
+
+.segmented input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 3px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--text);
+  background: var(--control);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.08);
+  cursor: default;
+  appearance: none;
+}
+
+.button:active {
+  filter: brightness(0.92);
+}
+
+.button:focus-visible,
+.button:has(input:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 0;
+}
+
+.button.primary {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(color-mix(in srgb, var(--accent) 85%, #fff), var(--accent));
+}
+
+.button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+select.button {
+  padding-right: 28px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' fill='none' stroke='%23fff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 4.5 4 1.5 7 4.5M1 7.5 4 10.5 7 7.5'/%3E%3C/svg%3E")
+      right 6px center / 8px 12px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 3px center / 14px calc(100% - 6px) no-repeat,
+    var(--control);
+  background-origin: border-box;
+}
+
+.chooser {
+  min-width: 180px;
+  min-height: 28px;
+  font-weight: 500;
+}
+
+.hint {
+  margin: -4px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.status {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.meter {
+  display: grid;
+  gap: 4px;
+}
+
+progress {
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  appearance: none;
+  background: var(--track);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--track);
+}
+
+progress::-webkit-progress-value {
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+progress::-moz-progress-bar {
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Tooltips center on their row rather than on the icon: rows are centered on screen,
+   so a tooltip no wider than the viewport can never spill off either side. */
+.fields,
+.meter .field-label,
+.download {
+  position: relative;
+}
+
+.help {
+  display: inline-flex;
+}
+
+.help > button {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  cursor: help;
+}
+
+.help > button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.help [role="tooltip"] {
+  position: absolute;
+  z-index: 1;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  translate: -50% 0;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--tooltip-text);
+  background: var(--tooltip-bg);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s, visibility 0.15s;
+}
+
+/* The settings sit near the top once the page scrolls, so their tooltips open downward. */
+.fields .help [role="tooltip"] {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.help:hover [role="tooltip"],
+.help:focus-within [role="tooltip"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* The only part of the page that scrolls; as a scroll container it may shrink below its content. */
+.results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+  background: var(--panel);
+}
+
+.results li + li {
+  border-top: 0.5px solid var(--border);
+}
+
+.result {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+}
+
+button.result {
+  cursor: default;
+}
+
+button.result::after {
+  content: "›";
+  color: var(--muted);
+}
+
+button.result:hover {
+  background: var(--track);
+}
+
+button.result:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.result-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.result-detail {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.result.failed {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result.failed .result-detail {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+a.button {
+  text-decoration: none;
+}
+
+.prompt {
+  box-sizing: border-box;
+  width: min(360px, 100vw - 32px);
+  padding: 20px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
+}
+
+.prompt::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+.prompt h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.prompt p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.prompt-actions form {
+  margin: 0;
+}
+
+.about {
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.about summary {
+  cursor: default;
+}
+
+.about p {
+  margin: 8px 0 0;
+  text-align: left;
+}
+
+/* A band of its own, set apart from the tool, with the references divided from the Ko-fi button. */
+.page-footer {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px 16px 20px;
+  border-top: 0.5px solid var(--border);
+  text-align: center;
+  background: var(--panel);
+}
+
+.credits {
+  display: grid;
+  gap: 2px;
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.credits p {
+  margin: 0;
+}
+
+.credits a {
+  color: inherit;
+}
+
+.credits a:hover {
+  color: var(--text);
+}
+
+.viewer {
+  box-sizing: border-box;
+  width: min(1200px, 100vw - 32px);
+  height: calc(100dvh - 32px);
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--bg);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
+}
+
+.viewer[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.viewer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.viewer-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-weight: 600;
+}
+
+.viewer-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewer-level {
+  min-width: 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.viewer-bar form {
+  margin: 0;
+}
+
+/* Auto margins center the image while it is smaller than the viewport, without clipping it once larger. */
+.viewer-viewport {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--panel);
+}
+
+.viewer-viewport img {
+  display: block;
+  flex: none;
+  margin: auto;
+}
+
+.viewer-viewport.fit img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.viewer-viewport:not(.fit) img {
+  cursor: grab;
+}
+
+.viewer-viewport:not(.fit) img:active {
+  cursor: grabbing;
+}
+
+@media (max-width: 600px) {
+  .chooser {
+    align-self: stretch;
+    min-height: 36px;
+  }
+
+  select.button,
+  .download .button {
+    min-height: 36px;
+  }
+
+  .segmented label {
+    padding: 8px 14px;
+  }
+
+  .result {
+    padding: 12px;
+  }
+
+  .viewer {
+    width: 100vw;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+}

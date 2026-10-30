@@ -1,0 +1,55 @@
+# Deploys the app to GitLab Pages from the default branch.
+# The ONNX models are not in git (see .gitignore): the `models` job exports them with export.py and
+# caches the result, so they are only rebuilt when export.py or its lock file changes.
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+models:
+  stage: build
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+  cache:
+    key:
+      files: [export.py, export.py.lock]
+    paths: [public/*.onnx]
+  script:
+    - |
+      for model in esrgan_x2 esrgan_x2_fp16 esrgan_x4 esrgan_x4_fp16; do
+        test -f "public/$model.onnx" || { uv run --locked --script export.py; break; }
+      done
+  artifacts:
+    paths: [public/*.onnx]
+    expire_in: 1 day
+
+lint:
+  stage: test
+  image: node:24-slim
+  needs: []
+  script:
+    - npm ci --ignore-scripts
+    - npm run lint
+
+# Chromium, Firefox and WebKit, as locally. The runners have no GPU, so WebGPU and fp16 cases skip.
+test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.64.1-noble # keep in step with the playwright devDependency
+  needs: [models]
+  script:
+    - npm ci --ignore-scripts
+    - npm test
+
+pages:
+  stage: deploy
+  image: node:24-slim
+  needs: [models, lint, test]
+  # VITE_SENTRY_DSN and VITE_GOATCOUNTER_URL come from the project's CI/CD variables (protected and masked).
+  variables:
+    VITE_SENTRY_RELEASE: upscale@$CI_COMMIT_SHORT_SHA
+  script:
+    - npm ci --ignore-scripts
+    - npm run build
+    # Pages sends file.gz instead of file to browsers that accept gzip: the 28 MB WASM runtime is ~7 MB compressed.
+    - find dist -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" -o -name "*.wasm" \) -exec gzip -9 --keep {} +
+  pages:
+    publish: dist

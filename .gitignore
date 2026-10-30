@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vitest/
+
+# Model weights and ONNX exports are large and reproducible: `uv run export.py`
+*.pth
+public/*.onnx
+
+__pycache__/
+.venv/
+.DS_Store

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Upscaler</title>
+  <g id="depth-1">
+    <rect x="2" y="258" width="252" height="252" rx="20.16" fill="#6c59e3"/>
+  </g>
+  <g id="depth-2">
+    <rect x="2" y="2" width="124" height="124" rx="9.92" fill="#5475f9"/>
+    <rect x="130" y="2" width="124" height="124" rx="9.92" fill="#477fff"/>
+    <rect x="2" y="130" width="124" height="124" rx="9.92" fill="#5475f9"/>
+    <rect x="130" y="130" width="124" height="124" rx="9.92" fill="#477fff"/>
+    <rect x="258" y="258" width="124" height="124" rx="9.92" fill="#477fff"/>
+    <rect x="386" y="258" width="124" height="124" rx="9.92" fill="#477fff"/>
+    <rect x="258" y="386" width="124" height="124" rx="9.92" fill="#5475f9"/>
+    <rect x="386" y="386" width="124" height="124" rx="9.92" fill="#5475f9"/>
+  </g>
+  <g id="depth-3">
+    <rect x="258" y="2" width="60" height="60" rx="4.8" fill="#169efe"/>
+    <rect x="322" y="2" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="258" y="66" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="386" y="2" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="450" y="2" width="60" height="60" rx="4.8" fill="#169efe"/>
+    <rect x="450" y="66" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="258" y="130" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="258" y="194" width="60" height="60" rx="4.8" fill="#169efe"/>
+    <rect x="322" y="194" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="450" y="130" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="386" y="194" width="60" height="60" rx="4.8" fill="#06a0ff"/>
+    <rect x="450" y="194" width="60" height="60" rx="4.8" fill="#169efe"/>
+  </g>
+  <g id="depth-4">
+    <rect x="322" y="66" width="28" height="28" rx="2.24" fill="#07b8f5"/>
+    <rect x="354" y="66" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="322" y="98" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="386" y="66" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="418" y="66" width="28" height="28" rx="2.24" fill="#07b8f5"/>
+    <rect x="418" y="98" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="322" y="130" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="322" y="162" width="28" height="28" rx="2.24" fill="#07b8f5"/>
+    <rect x="354" y="162" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="418" y="130" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="386" y="162" width="28" height="28" rx="2.24" fill="#01baf5"/>
+    <rect x="418" y="162" width="28" height="28" rx="2.24" fill="#07b8f5"/>
+  </g>
+  <g id="depth-5">
+    <rect x="354" y="98" width="12" height="12" rx="0.96" fill="#11cef2"/>
+    <rect x="370" y="98" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="354" y="114" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="370" y="114" width="12" height="12" rx="0.96" fill="#10cff1"/>
+    <rect x="386" y="98" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="402" y="98" width="12" height="12" rx="0.96" fill="#11cef2"/>
+    <rect x="386" y="114" width="12" height="12" rx="0.96" fill="#10cff1"/>
+    <rect x="402" y="114" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="354" y="130" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="370" y="130" width="12" height="12" rx="0.96" fill="#10cff1"/>
+    <rect x="354" y="146" width="12" height="12" rx="0.96" fill="#11cef2"/>
+    <rect x="370" y="146" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="386" y="130" width="12" height="12" rx="0.96" fill="#10cff1"/>
+    <rect x="402" y="130" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="386" y="146" width="12" height="12" rx="0.96" fill="#11cff2"/>
+    <rect x="402" y="146" width="12" height="12" rx="0.96" fill="#11cef2"/>
+  </g>
+</svg>

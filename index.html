@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Upscaler</title>
+    <meta
+      name="description"
+      content="Make images 2× or 4× larger with Real-ESRGAN, right in your browser. Your images never leave this device."
+    />
+    <meta name="theme-color" content="#ececec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)" />
+
+    <!-- Browsers that can use the SVG favicon pick it; the PNG is for those that can't (older Safari). It comes
+         first and declares its size, so Chrome doesn't prefer it. The icon is the mark drawn for 64px and below. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="/logo/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- One address for search engines, whatever ?backend= or ?precision= a link carries. -->
+    <link rel="canonical" href="https://cassianokc.gitlab.io/upscaler/" />
+
+    <!-- Link previews. Crawlers need absolute URLs, so these point at the main deploy. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Upscaler" />
+    <meta
+      property="og:description"
+      content="Make images 2× or 4× larger with Real-ESRGAN, right in your browser. Your images never leave this device."
+    />
+    <meta property="og:url" content="https://cassianokc.gitlab.io/upscaler/" />
+    <meta property="og:image" content="https://cassianokc.gitlab.io/upscaler/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Upscaler mark, a square subdividing into ever finer tiles, beside the name." />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Upscaler",
+        "url": "https://cassianokc.gitlab.io/upscaler/",
+        "description": "Make images 2× or 4× larger with Real-ESRGAN, right in your browser. Your images never leave this device.",
+        "image": "https://cassianokc.gitlab.io/upscaler/og-image.png",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "browserRequirements": "A desktop browser; WebGPU makes it much faster",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "2× and 4× upscaling with Real-ESRGAN",
+          "Runs on your device: images are never uploaded",
+          "Whole folders at once, downloaded as a zip",
+          "Keeps each image's color profile"
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <h1>Upscaler</h1>
+      <p>
+        Make images 2× or 4× larger with Real-ESRGAN, right in your browser. Your images never leave this device.
+        Upscaler needs JavaScript to run.
+      </p>
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
