@@ -174,7 +174,8 @@ function Footer({ onDonate }) {
       </details>
       <div className="credits">
         <p>
-          Powered by <Link href="https://github.com/xinntao/Real-ESRGAN">Real-ESRGAN</Link> (BSD-3-Clause), which builds
+          Powered by <Link href="https://github.com/xinntao/Real-ESRGAN">Real-ESRGAN</Link> (
+          <Link href={`${import.meta.env.BASE_URL}LICENSE-Real-ESRGAN.txt`}>BSD-3-Clause</Link>), which builds
           on <Link href="https://github.com/xinntao/ESRGAN">ESRGAN</Link>, running on{" "}
           <Link href="https://github.com/microsoft/onnxruntime">ONNX Runtime Web</Link>.
         </p>

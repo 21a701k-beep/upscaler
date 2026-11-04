@@ -96,3 +96,8 @@ Real-ESRGAN, and for releasing the code and weights openly.
   *ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks*, ECCV 2018 Workshops.
   [arXiv:1809.00219](https://arxiv.org/abs/1809.00219) · [code](https://github.com/xinntao/ESRGAN)
 - [ONNX Runtime](https://github.com/microsoft/onnxruntime) (MIT), which runs the models in the browser.
+
+## License
+
+[BSD-3-Clause](LICENSE). The models are converted from the Real-ESRGAN weights, whose own BSD-3-Clause notice
+is in [public/LICENSE-Real-ESRGAN.txt](public/LICENSE-Real-ESRGAN.txt) and is served alongside them.
