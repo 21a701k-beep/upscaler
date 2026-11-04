@@ -24,7 +24,12 @@ export default defineConfig(({ command }) => ({
       enabled: true,
       headless: true,
       provider: playwright(),
-      instances: [{ browser: "chromium" }, { browser: "firefox" }, { browser: "webkit" }],
+      instances: [
+        // Full Chromium in new headless mode exposes the GPU to WebGPU; the default headless shell has no adapter.
+        { browser: "chromium", provider: playwright({ launchOptions: { channel: "chromium" } }) },
+        { browser: "firefox" },
+        { browser: "webkit" },
+      ],
     },
   },
 }));
