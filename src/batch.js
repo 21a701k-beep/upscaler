@@ -51,7 +51,7 @@ export async function processBatch(files, scale, options = {}) {
     signal?.throwIfAborted();
     const name = outputName(file, scale);
     try {
-      const entry = { name, ...(await upscaleFile(file, scale, index, options)) };
+      const entry = { name, source: file, ...(await upscaleFile(file, scale, index, options)) };
       outputs.push(entry);
       onResult(entry);
     } catch (err) {

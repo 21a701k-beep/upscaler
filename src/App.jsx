@@ -383,6 +383,7 @@ export default function App() {
 
   function closeViewer() {
     URL.revokeObjectURL(viewing.url);
+    URL.revokeObjectURL(viewing.originalUrl);
     setViewing(null);
   }
 
@@ -480,7 +481,14 @@ export default function App() {
                   <button
                     type="button"
                     className="result"
-                    onClick={() => setViewing({ ...entry, url: URL.createObjectURL(entry.blob) })}
+                    onClick={() =>
+                      setViewing({
+                        ...entry,
+                        scale,
+                        url: URL.createObjectURL(entry.blob),
+                        originalUrl: URL.createObjectURL(entry.source),
+                      })
+                    }
                   >
                     <span className="result-name">{entry.name}</span>
                     <span className="result-detail">

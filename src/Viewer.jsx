@@ -5,14 +5,17 @@ const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 16;
 
 // Full-size view of one result in a modal dialog. Opens fitted to the window; zoom with the buttons,
-// Ctrl/⌘ + scroll (trackpad pinch in most browsers) or a double-click; pan by dragging or scrolling.
+// Ctrl/⌘ + scroll, a trackpad pinch or a double-click; pan by dragging or scrolling.
+// A divider compares it with the original, which the browser enlarges to the same size.
 export default function Viewer({ item, onClose }) {
   const dialogRef = useRef(null);
   const viewportRef = useRef(null);
   const imageRef = useRef(null);
   const anchor = useRef(null);
+  const pinchStart = useRef(null);
   const drag = useRef(null);
   const [zoom, setZoom] = useState(null); // null: fit to the window
+  const [split, setSplit] = useState(0.5); // the original's share, from the left
 
   useEffect(() => {
     // Guarded because StrictMode runs mount effects twice in development.
@@ -48,13 +51,28 @@ export default function Viewer({ item, onClose }) {
       const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
       zoomTo((current) => current * Math.exp(-delta / 200), e.clientX, e.clientY);
     }
+    // Safari reports a trackpad pinch as gesture events instead of Ctrl + wheel; e.scale is relative to its start.
+    function onGestureStart(e) {
+      e.preventDefault();
+      pinchStart.current = imageRef.current.getBoundingClientRect().width / item.width;
+    }
+    function onGestureChange(e) {
+      e.preventDefault();
+      zoomTo(pinchStart.current * e.scale, e.clientX, e.clientY);
+    }
     // React's wheel listeners are passive, so they can't stop the browser zooming the whole page.
     view.addEventListener("wheel", onWheel, { passive: false });
-    return () => view.removeEventListener("wheel", onWheel);
+    view.addEventListener("gesturestart", onGestureStart);
+    view.addEventListener("gesturechange", onGestureChange);
+    return () => {
+      view.removeEventListener("wheel", onWheel);
+      view.removeEventListener("gesturestart", onGestureStart);
+      view.removeEventListener("gesturechange", onGestureChange);
+    };
   });
 
   function startDrag(e) {
-    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    if (e.pointerType !== "mouse" || e.button !== 0 || e.target.type === "range") return;
     const view = viewportRef.current;
     drag.current = { x: e.clientX, y: e.clientY, left: view.scrollLeft, top: view.scrollTop };
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -95,18 +113,49 @@ export default function Viewer({ item, onClose }) {
         </form>
       </div>
       <div ref={viewportRef} className={zoom === null ? "viewer-viewport fit" : "viewer-viewport"}>
-        <img
+        <div
           ref={imageRef}
-          src={item.url}
-          alt={item.name}
-          draggable={false}
-          style={zoom === null ? undefined : { width: item.width * zoom }}
-          onDoubleClick={(e) => (zoom === null ? zoomTo(1, e.clientX, e.clientY) : setZoom(null))}
+          className="viewer-compare"
+          style={{
+            "--aspect": item.width / item.height,
+            "--split": split,
+            width: zoom === null ? undefined : item.width * zoom,
+          }}
+          onDoubleClick={(e) => {
+            if (e.target.type === "range") return;
+            if (zoom === null) zoomTo(1, e.clientX, e.clientY);
+            else setZoom(null);
+          }}
           onPointerDown={startDrag}
           onPointerMove={moveDrag}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-        />
+        >
+          <img src={item.url} alt={item.name} draggable={false} />
+          <img className="viewer-original" src={item.originalUrl} alt="" draggable={false} />
+          <span className="viewer-label original">Original</span>
+          <span className="viewer-label upscaled">Real-ESRGAN {item.scale}×</span>
+          <input
+            type="range"
+            className="viewer-split"
+            aria-label="Original and upscaled divider"
+            min="0"
+            max="1"
+            step="any"
+            value={split}
+            onChange={(e) => setSplit(Number(e.target.value))}
+            // With step="any", arrows nudge by 1% in Chromium and WebKit but jump to the end in Firefox.
+            onKeyDown={(e) => {
+              const direction = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key];
+              if (!direction) return;
+              e.preventDefault();
+              setSplit((s) => Math.min(1, Math.max(0, s + direction * 0.05)));
+            }}
+          />
+          <div className="viewer-divider" aria-hidden="true">
+            <span className="viewer-knob">‹›</span>
+          </div>
+        </div>
       </div>
     </dialog>
   );
