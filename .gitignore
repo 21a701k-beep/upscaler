@@ -9,3 +9,5 @@ public/*.onnx
 __pycache__/
 .venv/
 .DS_Store
+# The promo video is its own local repository.
+promo/
