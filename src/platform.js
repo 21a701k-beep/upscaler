@@ -43,15 +43,3 @@ async function detect() {
     ? choose("webgpu", "fp16", `${gpu} supports shader-f16`)
     : choose("webgpu", "fp32", `${gpu} lacks shader-f16`);
 }
-
-// Devices that get a warning before upscaling: mobile browsers give a tab far less memory than a computer, so
-// on iOS (every browser there is WebKit) and Chromium browsers on Android a run may crash partway through.
-// Returns the device, for "may not work on this <device>", or null elsewhere.
-export function limitedDevice() {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPod/.test(ua)) return "iPhone";
-  // iPads asking for the desktop site report a Mac user agent, but Macs have no touch screen.
-  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "iPad";
-  if (/Android/.test(ua) && /Chrome\//.test(ua)) return "Android device";
-  return null;
-}

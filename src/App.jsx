@@ -1,10 +1,10 @@
 import * as Sentry from "@sentry/react";
 import { useEffect, useId, useRef, useState } from "react";
 import icon from "../logo/icon.svg";
+import { useModal } from "./useModal.js";
 import Viewer from "./Viewer.jsx";
 import { track } from "./analytics.js";
 import { path, processBatch } from "./batch.js";
-import { limitedDevice } from "./platform.js";
 import { loadSession } from "./upscale.js";
 
 const NO_PROGRESS = { image: 0, images: 0, tile: 0, tiles: 0 };
@@ -18,7 +18,6 @@ const DONATE_AFTER_MS = 2 * 60 * 60 * 1000;
 const DONATE_CLICKED_KEY = "upscale-donate-clicked";
 // Above this many input pixels a run is warned about first: memory grows with image size.
 const LARGE_IMAGE_PIXELS = 5_000_000;
-const LIMITED_DEVICE = limitedDevice();
 const DEFAULT_SCALE = 2;
 const IMAGE_EXTENSION = /\.(avif|bmp|gif|jpe?g|png|webp)$/i;
 
@@ -124,15 +123,10 @@ function DonateLink({ className = "button", onClick }) {
 }
 
 function DonateDialog({ onClose }) {
-  const dialogRef = useRef(null);
+  const dialogRef = useModal();
 
-  useEffect(() => {
-    // Guarded because StrictMode runs mount effects twice in development.
-    if (!dialogRef.current.open) {
-      dialogRef.current.showModal();
-      track("donate-dialog-shown");
-    }
-  }, []);
+  // StrictMode's second mount only happens in development, where nothing is counted.
+  useEffect(() => track("donate-dialog-shown"), []);
 
   return (
     <dialog ref={dialogRef} className="prompt" aria-labelledby="donate-title" closedby="any" onClose={onClose}>
@@ -174,7 +168,8 @@ function Footer({ onDonate }) {
           It runs entirely in your browser: the model is downloaded to this page and runs on your graphics card through
           WebGPU, or on the processor through WebAssembly, so your images are never uploaded. Pick a few images or a whole
           folder; each result is saved as a PNG that keeps the original's color profile, and a folder downloads as one zip.
-          It's free, and works best in a desktop browser.
+          It's free, with no account, no watermark and no limit on how many images, and works on computers, phones and
+          tablets.
         </p>
       </details>
       <div className="credits">
@@ -190,13 +185,9 @@ function Footer({ onDonate }) {
 
 // Asked before a run that includes images over LARGE_IMAGE_PIXELS; Escape or a click outside cancels.
 function LargeImagesDialog({ large, total, scale, onContinue, onCancel }) {
-  const dialogRef = useRef(null);
+  const dialogRef = useModal();
   const largest = large.reduce((a, b) => (a.width * a.height >= b.width * b.height ? a : b));
   const size = `${largest.width}×${largest.height} (${megapixels(largest)} MP)`;
-
-  useEffect(() => {
-    if (!dialogRef.current.open) dialogRef.current.showModal();
-  }, []);
 
   return (
     <dialog
@@ -226,28 +217,6 @@ function LargeImagesDialog({ large, total, scale, onContinue, onCancel }) {
   );
 }
 
-// Shown once on opening the page on phones and tablets, where upscaling may run out of memory.
-function DeviceDialog({ device, onClose }) {
-  const dialogRef = useRef(null);
-
-  useEffect(() => {
-    if (!dialogRef.current.open) dialogRef.current.showModal();
-  }, []);
-
-  return (
-    <dialog ref={dialogRef} className="prompt" aria-labelledby="device-title" closedby="any" onClose={onClose}>
-      <h2 id="device-title">Upscaler may not work on this {device}</h2>
-      <p>
-        Mobile browsers may crash due to high memory usage, especially with large images at 4×. This website works best
-        on a computer.
-      </p>
-      <form method="dialog" className="prompt-actions">
-        <button className="button primary">Try anyway</button>
-      </form>
-    </dialog>
-  );
-}
-
 export default function App() {
   const previousRun = useRef(Promise.resolve());
   const processedCount = useRef(0);
@@ -261,7 +230,6 @@ export default function App() {
   const [output, setOutput] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [pending, setPending] = useState(null); // a selection waiting on the large-image warning
-  const [deviceToWarn, setDeviceToWarn] = useState(LIMITED_DEVICE);
   const [donate, setDonate] = useState(() => (donateClickedBefore() ? "shown" : "idle")); // idle → due → shown
   const dueOnce = () => setDonate((state) => (state === "idle" ? "due" : state));
   const chooser = SOURCES[source];
@@ -518,8 +486,7 @@ export default function App() {
             }}
           />
         )}
-        {deviceToWarn && <DeviceDialog device={deviceToWarn} onClose={() => setDeviceToWarn(null)} />}
-        {donate === "due" && !viewing && !pending && !deviceToWarn && <DonateDialog onClose={() => setDonate("shown")} />}
+        {donate === "due" && !viewing && !pending && <DonateDialog onClose={() => setDonate("shown")} />}
       </main>
 
       <Footer onDonate={() => setDonate("shown")} />

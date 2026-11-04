@@ -69,18 +69,6 @@ export function loadSession(scale, forced) {
   return session;
 }
 
-function toTensor(imageData) {
-  const { data, width, height } = imageData;
-  const plane = width * height;
-  const chw = new Float32Array(3 * plane);
-  for (let i = 0; i < plane; i++) {
-    chw[i] = data[i * 4] / 255;
-    chw[plane + i] = data[i * 4 + 1] / 255;
-    chw[2 * plane + i] = data[i * 4 + 2] / 255;
-  }
-  return new ort.Tensor("float32", chw, [1, 3, height, width]);
-}
-
 // Reads one tile, repeating the last row/column where it extends past the image:
 // zero padding visibly darkens edges.
 function readTile(bitmap, x0, y0, tw, th) {
@@ -128,7 +116,9 @@ export async function* upscaleStrips(
       const x0 = Math.max(x - pad, 0);
       const y0 = Math.max(y - pad, 0);
 
-      const run = session.run({ input: toTensor(readTile(bitmap, x0, y0, size, size)) });
+      // Without options, fromImage gives float32 RGB in [0, 1], laid out [1, 3, h, w] as the model expects.
+      const input = await ort.Tensor.fromImage(readTile(bitmap, x0, y0, size, size));
+      const run = session.run({ input });
       lastRun = run.catch(() => {});
       const { output } = await run;
       const [, , outTileHeight, outTileWidth] = output.dims;

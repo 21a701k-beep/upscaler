@@ -31,35 +31,28 @@ lint:
     - npm ci --ignore-scripts
     - npm run lint
 
-# Chromium, Firefox and WebKit, as locally. The runners have no GPU, so WebGPU and fp16 cases skip.
+# Chromium, Firefox and WebKit, as locally, under a hard 4 GB cap (no swap): over it, the kernel kills a
+# browser and the job fails. The runners have no GPU, so WebGPU and fp16 cases skip.
 test:
-  stage: test
-  image: mcr.microsoft.com/playwright:v1.64.1-noble # keep in step with the playwright devDependency
-  needs: [models]
-  script:
-    - npm ci --ignore-scripts
-    - npm test
-
-# The same suite under a hard 4 GB cap (no swap): over it, the kernel kills a browser and the job fails.
-test-4gb:
   stage: test
   image: docker:27-cli
   services: [docker:27-dind]
   needs: [models]
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
+    PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble # keep in step with the playwright devDependency
   script:
-    - docker create --name tests --memory=4g --memory-swap=4g -w /app mcr.microsoft.com/playwright:v1.64.1-noble sh -c "npm ci --ignore-scripts && npm test"
+    - docker create --name tests --memory=4g --memory-swap=4g -w /app $PLAYWRIGHT_IMAGE sh -c "npm ci --ignore-scripts && npm test"
     - docker cp . tests:/app
     - docker start --attach tests
 
 pages:
   stage: deploy
   image: node:24-slim
-  needs: [models, lint, test, test-4gb]
+  needs: [models, lint, test]
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  # VITE_SENTRY_DSN and VITE_GOATCOUNTER_URL come from the project's CI/CD variables (protected and masked).
+  # VITE_SENTRY_DSN, VITE_GOATCOUNTER_URL, VITE_GOOGLE_SITE_VERIFICATION and VITE_BING_SITE_VERIFICATION come from the project's CI/CD variables (protected and masked).
   variables:
     VITE_SENTRY_RELEASE: upscale@$CI_COMMIT_SHORT_SHA
   script:

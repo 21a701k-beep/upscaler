@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useModal } from "./useModal.js";
 
 const ZOOM_STEP = 1.5;
 const MIN_ZOOM = 0.05;
@@ -8,7 +9,7 @@ const MAX_ZOOM = 16;
 // Ctrl/⌘ + scroll, a trackpad pinch or a double-click; pan by dragging or scrolling.
 // A divider compares it with the original, which the browser enlarges to the same size.
 export default function Viewer({ item, onClose }) {
-  const dialogRef = useRef(null);
+  const dialogRef = useModal();
   const viewportRef = useRef(null);
   const imageRef = useRef(null);
   const anchor = useRef(null);
@@ -16,11 +17,6 @@ export default function Viewer({ item, onClose }) {
   const drag = useRef(null);
   const [zoom, setZoom] = useState(null); // null: fit to the window
   const [split, setSplit] = useState(0.5); // the original's share, from the left
-
-  useEffect(() => {
-    // Guarded because StrictMode runs mount effects twice in development.
-    if (!dialogRef.current.open) dialogRef.current.showModal();
-  }, []);
 
   // Zooms while keeping the image point under (x, y) in place; defaults to the viewport center.
   function zoomTo(next, x, y) {
