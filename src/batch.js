@@ -1,7 +1,7 @@
 import { makeZip } from "client-zip";
 import { splitProfile } from "./icc.js";
 import { clearOutputs, openOutput, pngWriter } from "./png.js";
-import { upscaleStrips } from "./upscale.js";
+import { GpuLostError, upscaleStrips } from "./upscale.js";
 
 export function path(file) {
   return file.webkitRelativePath || file.name;
@@ -51,7 +51,12 @@ export async function processBatch(files, scale, options = {}) {
     signal?.throwIfAborted();
     const name = outputName(file, scale);
     try {
-      const entry = { name, source: file, ...(await upscaleFile(file, scale, index, options)) };
+      const upscaled = await upscaleFile(file, scale, index, options).catch((err) => {
+        if (!(err instanceof GpuLostError)) throw err;
+        console.warn(`${err.message}; retrying the image on WASM`);
+        return upscaleFile(file, scale, index, options);
+      });
+      const entry = { name, source: file, ...upscaled };
       outputs.push(entry);
       onResult(entry);
     } catch (err) {

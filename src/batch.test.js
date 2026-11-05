@@ -1,9 +1,11 @@
+import * as ort from "onnxruntime-web/webgpu";
 import { expect, test } from "vitest";
 import { processBatch } from "./batch.js";
 import jpg from "./fixtures/adobe-rgb.jpg?url";
 import png from "./fixtures/adobe-rgb.png?url";
 import webp from "./fixtures/adobe-rgb.webp?url";
 import { splitProfile } from "./icc.js";
+import { detectPlatform } from "./platform.js";
 
 // Small tiles and padding keep every model run tiny: CI runs these on single-threaded WASM.
 const OPTIONS = { backend: "wasm", tile: 32, pad: 8 };
@@ -65,4 +67,19 @@ test.for([jpg, png, webp])("%s keeps its color space and profile", async (url) =
   ctx.drawImage(bitmap, 0, 0);
   const center = ctx.getImageData(16, 16, 1, 1).data;
   [60, 160, 90].forEach((value, i) => expect(Math.abs(center[i] - value)).toBeLessThan(8));
+});
+
+test("an image whose GPU device is lost mid-run is retried on WASM", async ({ skip }) => {
+  if ((await detectPlatform()).backend !== "webgpu") skip("this browser doesn't run on WebGPU");
+  const file = await pngFile("photo.png", 20, 12);
+  // Detected, not forced: loads the WebGPU session.
+  await processBatch([file], 2, { tile: 32, pad: 8 });
+
+  (await ort.env.webgpu.device).destroy();
+  const errors = [];
+  const result = await processBatch([file], 2, { tile: 32, pad: 8, onError: (name, err) => errors.push(err) });
+
+  expect(errors).toEqual([]);
+  const bitmap = await createImageBitmap(result.blob);
+  expect([bitmap.width, bitmap.height]).toEqual([40, 24]);
 });

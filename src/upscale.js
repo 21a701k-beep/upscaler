@@ -12,6 +12,17 @@ const TILING = {
 
 let current = { key: null, session: null };
 let lastRun = Promise.resolve();
+const backends = new WeakMap();
+// Set once a detected WebGPU session fails mid-run, typically because the browser dropped the GPU device
+// (iOS does under memory pressure or when the tab goes to the background); the rest of the visit uses WASM.
+let gpuLost = false;
+
+// Thrown when the detected WebGPU path fails mid-run: the image can be retried, and will run on WASM.
+export class GpuLostError extends Error {
+  constructor(cause) {
+    super(`WebGPU failed while upscaling: ${cause?.message ?? cause}`, { cause });
+  }
+}
 
 // WASM inference can finish without ever leaving the current task, so without this the page could
 // neither show progress nor react to input until a whole image is done. React schedules its renders
@@ -34,28 +45,31 @@ async function createSession(scale, backend, precision) {
   // the same shape, "simple" reuses exact-size buffers and holds GPU memory at one tile's worth.
   const provider = backend === "webgpu" ? { name: backend, storageBufferCacheMode: "simple" } : backend;
   const session = await ort.InferenceSession.create(modelUrl(scale, precision), { executionProviders: [provider] });
+  backends.set(session, backend);
   console.info(`Loaded the ${scale}× ${precision} model on ${backend} in ${Math.round(performance.now() - t0)} ms`);
   return session;
 }
 
 // `forced` ({ backend, precision }) skips detection; tests use it to pin a path. Otherwise the detected
-// path is used, falling back to WASM with fp32 if the GPU session can't be created.
+// path is used, falling back to WASM with fp32 if the GPU session can't be created or has failed.
 // Only one model is held at a time: switching releases the previous session, once its last tile has
 // finished, before the next one loads, so two models never hold memory together.
 export function loadSession(scale, forced) {
-  const key = forced ? `${scale}:${forced.backend}:${forced.precision}` : `${scale}`;
+  const key = forced ? `${scale}:${forced.backend}:${forced.precision}` : `${scale}${gpuLost ? ":wasm" : ""}`;
   if (current.key === key) return current.session;
   const released = (current.session ?? Promise.resolve()).then(
     async (session) => {
       await lastRun;
-      await session?.release();
+      // A session whose GPU device is gone may fail to release; it is dropped either way.
+      await session?.release().catch(() => {});
     },
     () => {},
   );
+  const platform = () => (gpuLost ? { backend: "wasm", precision: "fp32" } : detectPlatform());
   const session = released.then(() =>
     forced
       ? createSession(scale, forced.backend, forced.precision)
-      : detectPlatform().then(async ({ backend, precision }) => {
+      : Promise.resolve(platform()).then(async ({ backend, precision }) => {
           try {
             return await createSession(scale, backend, precision);
           } catch (err) {
@@ -120,7 +134,14 @@ export async function* upscaleStrips(
       const input = await ort.Tensor.fromImage(readTile(bitmap, x0, y0, size, size));
       const run = session.run({ input });
       lastRun = run.catch(() => {});
-      const { output } = await run;
+      let output;
+      try {
+        ({ output } = await run);
+      } catch (err) {
+        if (backend || backends.get(session) !== "webgpu") throw err;
+        gpuLost = true;
+        throw new GpuLostError(err);
+      }
       const [, , outTileHeight, outTileWidth] = output.dims;
       const plane = outTileHeight * outTileWidth;
       const chw = output.data;
