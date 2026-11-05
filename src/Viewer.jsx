@@ -130,7 +130,7 @@ export default function Viewer({ item, onClose }) {
           <img src={item.url} alt={item.name} draggable={false} />
           <img className="viewer-original" src={item.originalUrl} alt="" draggable={false} />
           <span className="viewer-label original">Original</span>
-          <span className="viewer-label upscaled">Real-ESRGAN {item.scale}×</span>
+          <span className="viewer-label upscaled">{item.modelName}</span>
           <input
             type="range"
             className="viewer-split"

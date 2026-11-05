@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { upscaleStrips } from "./upscale.js";
+import { MODELS, upscaleStrips } from "./upscale.js";
 
 const QUADRANTS = [
   [255, 0, 0],
@@ -19,10 +19,11 @@ function quadrantImage(width, height) {
   return createImageBitmap(new ImageData(data, width, height));
 }
 
-async function upscaleAll(bitmap, scale, options) {
+async function upscaleAll(bitmap, model, options) {
+  const { scale } = MODELS[model];
   const width = bitmap.width * scale;
   const rgb = new Uint8ClampedArray(width * bitmap.height * scale * 3);
-  for await (const strip of upscaleStrips(bitmap, scale, options)) rgb.set(strip.data, strip.y * width * 3);
+  for await (const strip of upscaleStrips(bitmap, model, options)) rgb.set(strip.data, strip.y * width * 3);
   return { rgb, width, height: bitmap.height * scale };
 }
 
@@ -48,16 +49,17 @@ describe.each([
   ["webgpu", "fp32"],
   ["webgpu", "fp16"],
 ])("%s %s", (backend, precision) => {
-  test.for([4, 2].flatMap((scale) => SIZES.map(([w, h]) => [scale, w, h])))(
-    "x%i %ix%i",
-    async ([scale, width, height], { skip }) => {
+  test.for(Object.keys(MODELS).flatMap((model) => SIZES.map(([w, h]) => [model, w, h])))(
+    "%s %ix%i",
+    async ([model, width, height], { skip }) => {
       const adapter = backend === "webgpu" ? await navigator.gpu?.requestAdapter() : null;
       if (backend === "webgpu" && !adapter) skip("no WebGPU adapter");
       // Software WebGPU (SwiftShader in headless Chromium) is too slow to test with, and the app avoids it too.
       if (backend === "webgpu" && adapter.info?.isFallbackAdapter) skip("software WebGPU adapter");
       if (precision === "fp16" && !adapter.features.has("shader-f16")) skip("no shader-f16");
 
-      const image = await upscaleAll(await quadrantImage(width, height), scale, {
+      const { scale } = MODELS[model];
+      const image = await upscaleAll(await quadrantImage(width, height), model, {
         backend,
         precision,
         tile: 32,
@@ -87,17 +89,13 @@ function checkerboard(width, height, square) {
   return createImageBitmap(new ImageData(data, width, height));
 }
 
-// Two tiles, each as wide as the padding needs, so the seam gets full padding on both sides and tiling should
-// match a single pass. Every tile is read at tile + 2 * pad square, so the single pass is 224 px at 4x and 448 px at 2x.
-test.for([
-  [4, 128],
-  [2, 256],
-])("x%i tiled black/white checkerboard matches a single pass", async ([scale, width]) => {
-  const bitmap = await checkerboard(width, 32, 7);
-  const options = { backend: "wasm" };
-  const whole = await upscaleAll(bitmap, scale, { ...options, tile: width });
-  const tiled = await upscaleAll(bitmap, scale, { ...options, tile: width / 2 });
-
+// A checkerboard one model tile wide, upscaled as a single tile and as two half tiles with the model's padding,
+// so the seam between them gets full padding on both sides, as every seam in a real image does.
+async function seamError(model, options) {
+  const { tile } = MODELS[model];
+  const bitmap = await checkerboard(tile, 32, 7);
+  const whole = await upscaleAll(bitmap, model, { backend: "wasm", tile });
+  const tiled = await upscaleAll(bitmap, model, { backend: "wasm", tile: tile / 2, ...options });
   let sum = 0;
   let max = 0;
   whole.rgb.forEach((value, i) => {
@@ -105,6 +103,26 @@ test.for([
     sum += diff;
     max = Math.max(max, diff);
   });
-  expect(sum / whole.rgb.length).toBeLessThan(1);
-  expect(max).toBeLessThan(32);
+  return { mean: sum / whole.rgb.length, max };
+}
+
+// Mean and largest difference allowed, in levels. Compact's padding covers all the input its output sees, so its
+// tiles must match a single pass up to rounding; the full models see further than their padding, so their seams
+// only need to stay invisible.
+const SEAM_LIMITS = {
+  compact: { mean: 0.01, max: 1 },
+  x2plus: { mean: 1, max: 31 },
+  x4plus: { mean: 1, max: 31 },
+};
+
+test.for(Object.entries(SEAM_LIMITS))("%s tiled black/white checkerboard matches a single pass", async ([model, limit]) => {
+  const { mean, max } = await seamError(model);
+  expect(mean).toBeLessThan(limit.mean);
+  expect(max).toBeLessThanOrEqual(limit.max);
+});
+
+// Shows the test above can fail: with Real-ESRGAN's default padding of 10, short of compact's 34, the seam shows.
+test("compact checkerboard shows a seam with too little padding", async () => {
+  const { max } = await seamError("compact", { pad: 10 });
+  expect(max).toBeGreaterThan(SEAM_LIMITS.compact.max);
 });

@@ -16,7 +16,7 @@ models:
     paths: [public/*.onnx]
   script:
     - |
-      for model in esrgan_x2 esrgan_x2_fp16 esrgan_x4 esrgan_x4_fp16; do
+      for model in esrgan_compact_x4 esrgan_compact_x4_fp16 esrgan_x2 esrgan_x2_fp16 esrgan_x4 esrgan_x4_fp16; do
         test -f "public/$model.onnx" || { uv run --locked --script export.py; break; }
       done
   artifacts:

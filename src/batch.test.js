@@ -19,7 +19,7 @@ async function pngFile(name, width, height) {
 }
 
 test("a single image comes back as its own PNG", async () => {
-  const result = await processBatch([await pngFile("photo.jpeg", 20, 12)], 2, OPTIONS);
+  const result = await processBatch([await pngFile("photo.jpeg", 20, 12)], "x2plus", OPTIONS);
 
   expect(result.name).toBe("photo_x2.png");
   const bitmap = await createImageBitmap(result.blob);
@@ -32,7 +32,7 @@ test("several images are zipped, and a broken one is reported without stopping t
   const results = [];
   const files = [await pngFile("a.png", 20, 12), broken, await pngFile("b.png", 9, 14)];
 
-  const result = await processBatch(files, 2, {
+  const result = await processBatch(files, "x2plus", {
     ...OPTIONS,
     onError: (name) => errors.push(name),
     onResult: ({ name, width, height }) => results.push([name, width, height]),
@@ -58,7 +58,7 @@ test.for([jpg, png, webp])("%s keeps its color space and profile", async (url) =
   const input = await splitProfile(file);
   expect(input?.profile.length).toBe(560);
 
-  const result = await processBatch([file], 2, OPTIONS);
+  const result = await processBatch([file], "x2plus", OPTIONS);
 
   const output = await splitProfile(result.blob);
   expect(output?.profile).toEqual(input.profile);
@@ -73,11 +73,11 @@ test("an image whose GPU device is lost mid-run is retried on WASM", async ({ sk
   if ((await detectPlatform()).backend !== "webgpu") skip("this browser doesn't run on WebGPU");
   const file = await pngFile("photo.png", 20, 12);
   // Detected, not forced: loads the WebGPU session.
-  await processBatch([file], 2, { tile: 32, pad: 8 });
+  await processBatch([file], "x2plus", { tile: 32, pad: 8 });
 
   (await ort.env.webgpu.device).destroy();
   const errors = [];
-  const result = await processBatch([file], 2, { tile: 32, pad: 8, onError: (name, err) => errors.push(err) });
+  const result = await processBatch([file], "x2plus", { tile: 32, pad: 8, onError: (name, err) => errors.push(err) });
 
   expect(errors).toEqual([]);
   const bitmap = await createImageBitmap(result.blob);

@@ -1,7 +1,7 @@
 import { makeZip } from "client-zip";
 import { splitProfile } from "./icc.js";
 import { clearOutputs, openOutput, pngWriter } from "./png.js";
-import { GpuLostError, upscaleStrips } from "./upscale.js";
+import { GpuLostError, MODELS, upscaleStrips } from "./upscale.js";
 
 export function path(file) {
   return file.webkitRelativePath || file.name;
@@ -11,20 +11,21 @@ export function outputName(file, scale) {
   return `${path(file).replace(/\.[^./]+$/, "")}_x${scale}.png`;
 }
 
-async function upscaleFile(file, scale, index, options) {
+async function upscaleFile(file, model, index, options) {
   const { signal, onImage = () => {} } = options;
   // Keep the input's own color space and tag the output with its profile. Without a profile to
   // carry over, let the browser convert to sRGB, which is what an untagged PNG means.
   const split = await splitProfile(file);
   const bitmap = await createImageBitmap(split?.untagged ?? file);
   try {
+    const { scale } = MODELS[model];
     const width = bitmap.width * scale;
     const height = bitmap.height * scale;
     onImage(index, width, height);
     const output = await openOutput(`${index}.png`);
     const png = pngWriter(output.sink, width, height, split?.profile);
     try {
-      for await (const strip of upscaleStrips(bitmap, scale, options)) {
+      for await (const strip of upscaleStrips(bitmap, model, options)) {
         signal?.throwIfAborted();
         await png.write(strip.data);
       }
@@ -42,7 +43,8 @@ async function upscaleFile(file, scale, index, options) {
 // Upscales each file to its own stored PNG, one at a time so only one decoded image is in memory.
 // Each finished image is reported through onResult as soon as it is stored.
 // Returns the single PNG, or a zip of all of them; null if every file failed.
-export async function processBatch(files, scale, options = {}) {
+export async function processBatch(files, model, options = {}) {
+  const { scale } = MODELS[model];
   const { signal, onResult = () => {}, onError = () => {} } = options;
   await clearOutputs();
   const outputs = [];
@@ -51,10 +53,10 @@ export async function processBatch(files, scale, options = {}) {
     signal?.throwIfAborted();
     const name = outputName(file, scale);
     try {
-      const upscaled = await upscaleFile(file, scale, index, options).catch((err) => {
+      const upscaled = await upscaleFile(file, model, index, options).catch((err) => {
         if (!(err instanceof GpuLostError)) throw err;
         console.warn(`${err.message}; retrying the image on WASM`);
-        return upscaleFile(file, scale, index, options);
+        return upscaleFile(file, model, index, options);
       });
       const entry = { name, source: file, ...upscaled };
       outputs.push(entry);

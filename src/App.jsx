@@ -5,7 +5,7 @@ import { useModal } from "./useModal.js";
 import Viewer from "./Viewer.jsx";
 import { track } from "./analytics.js";
 import { path, processBatch } from "./batch.js";
-import { loadSession } from "./upscale.js";
+import { MODELS, loadSession } from "./upscale.js";
 
 const NO_PROGRESS = { image: 0, images: 0, tile: 0, tiles: 0 };
 const LOADING = "Loading the upscaling model…";
@@ -18,7 +18,14 @@ const DONATE_AFTER_MS = 2 * 60 * 60 * 1000;
 const DONATE_CLICKED_KEY = "upscale-donate-clicked";
 // Above this many input pixels a run is warned about first: memory grows with image size.
 const LARGE_IMAGE_PIXELS = 5_000_000;
-const DEFAULT_SCALE = 2;
+// In menu order. Compact, the default, gets close to the full models in a fraction of the time; the rest are
+// marked slow.
+const MODEL_NAMES = {
+  compact: "Real-ESRGAN Compact 4×",
+  x2plus: "Real-ESRGAN 2×",
+  x4plus: "Real-ESRGAN 4×",
+};
+const DEFAULT_MODEL = "compact";
 const IMAGE_EXTENSION = /\.(avif|bmp|gif|jpe?g|png|webp)$/i;
 
 const SOURCES = {
@@ -164,7 +171,8 @@ function Footer({ onDonate }) {
       <details className="about">
         <summary>How it works</summary>
         <p>
-          Upscaler makes photos and drawings 2× or 4× larger with Real-ESRGAN, a neural network trained to restore detail.
+          Upscaler makes photos and drawings 2× or 4× larger with Real-ESRGAN, a family of neural networks trained to
+          restore detail. By default it uses the compact one, over ten times faster than the full models.
           It runs entirely in your browser: the model is downloaded to this page and runs on your graphics card through
           WebGPU, or on the processor through WebAssembly, so your images are never uploaded. Pick a few images or a whole
           folder; each result is saved as a PNG that keeps the original's color profile, and a folder downloads as one zip.
@@ -223,7 +231,7 @@ export default function App() {
   const processedCount = useRef(0);
   const [source, setSource] = useState("files");
   const [files, setFiles] = useState([]);
-  const [scale, setScale] = useState(DEFAULT_SCALE);
+  const [model, setModel] = useState(DEFAULT_MODEL);
   const [status, setStatus] = useState(LOADING);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(NO_PROGRESS);
@@ -240,7 +248,7 @@ export default function App() {
   const percent = progress.tiles ? Math.round((100 * progress.tile) / progress.tiles) : 0;
 
   useEffect(() => {
-    loadSession(DEFAULT_SCALE).then(
+    loadSession(DEFAULT_MODEL).then(
       () => setStatus((current) => (current === LOADING ? `Ready. ${START_HINT}` : current)),
       (err) => {
         setStatus(errorMessage(err));
@@ -260,7 +268,7 @@ export default function App() {
     const controller = new AbortController();
     const t0 = performance.now();
     let failed = 0;
-    // A new selection or scale starts a new run, and the UI resets with it: one extra render per run.
+    // A new selection or model starts a new run, and the UI resets with it: one extra render per run.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRunning(true);
     setOutput(null);
@@ -271,19 +279,19 @@ export default function App() {
     const run = (async () => {
       // An aborted run must release its output files before this one clears them.
       await previousRun.current;
-      return processBatch(files, scale, {
+      return processBatch(files, model, {
         signal: controller.signal,
         onImage(index, width, height) {
           // Progress lines reach Sentry Logs, so a tab killed for memory still shows how far it got.
           // File names stay out of them: they can be personal.
-          console.info(`Upscaling image ${index + 1} of ${files.length} to ${width}×${height} at ${scale}×`);
+          console.info(`Upscaling image ${index + 1} of ${files.length} to ${width}×${height} with ${model}`);
           setStatus(`Upscaling ${path(files[index])}`);
           setProgress({ image: index, images: files.length, tile: 0, tiles: 0 });
         },
         onTile: (tile, tiles) => setProgress((p) => ({ ...p, tile, tiles })),
         onResult(entry) {
           processedCount.current++;
-          track("image-processed", scale);
+          track("image-processed", model);
           setResults((list) => [...list, entry]);
         },
         onError(name, err) {
@@ -300,8 +308,8 @@ export default function App() {
       (batchOutput) => {
         const seconds = ((performance.now() - t0) / 1000).toFixed(1);
         const done = files.length - failed;
-        console.info(`Finished ${done} of ${files.length} images at ${scale}× in ${seconds} s`);
-        if (fromFolder && done > 0) track("folder-processed", scale);
+        console.info(`Finished ${done} of ${files.length} images with ${model} in ${seconds} s`);
+        if (fromFolder && done > 0) track("folder-processed", model);
         setProgress((p) => ({ ...p, image: files.length }));
         setStatus(
           done === 0
@@ -323,7 +331,7 @@ export default function App() {
     );
 
     return () => controller.abort();
-  }, [files, scale, fromFolder]);
+  }, [files, model, fromFolder]);
 
   async function chooseFiles(e) {
     const chosen = imageFiles(e.target.files);
@@ -341,7 +349,7 @@ export default function App() {
   }
 
   function saveOutput() {
-    track(fromFolder ? "folder-downloaded" : "image-downloaded", scale);
+    track(fromFolder ? "folder-downloaded" : "image-downloaded", model);
     const link = document.createElement("a");
     link.href = URL.createObjectURL(output.blob);
     link.download = output.name;
@@ -390,15 +398,19 @@ export default function App() {
 
             <div className="field">
               <div className="field-label">
-                <label htmlFor="scale">Scale</label>
+                <label htmlFor="model">Model</label>
                 <Help>
-                  How much bigger each side gets: at 4×, 1000×750 becomes 4000×3000. 2× is quicker and easier on memory
-                  for very large images. Changing it restarts the current run.
+                  Real-ESRGAN Compact is Real-ESRGAN's small model: over ten times faster than the full ones, with close
+                  results. The full models can bring out a little more texture. The number is how much bigger each side
+                  gets: at 4×, 1000×750 becomes 4000×3000. Changing it restarts the current run.
                 </Help>
               </div>
-              <select id="scale" className="button" value={scale} onChange={(e) => setScale(Number(e.target.value))}>
-                <option value={2}>2×</option>
-                <option value={4}>4×</option>
+              <select id="model" className="button" value={model} onChange={(e) => setModel(e.target.value)}>
+                {Object.entries(MODEL_NAMES).map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {id === DEFAULT_MODEL ? name : `${name} (slow)`}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -453,7 +465,7 @@ export default function App() {
                     onClick={() =>
                       setViewing({
                         ...entry,
-                        scale,
+                        modelName: MODEL_NAMES[model],
                         url: URL.createObjectURL(entry.blob),
                         originalUrl: URL.createObjectURL(entry.source),
                       })
@@ -476,7 +488,7 @@ export default function App() {
           <LargeImagesDialog
             large={pending.large}
             total={pending.files.length}
-            scale={scale}
+            scale={MODELS[model].scale}
             onContinue={() => {
               setFiles(pending.files);
               setPending(null);

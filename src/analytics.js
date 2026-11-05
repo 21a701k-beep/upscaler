@@ -23,8 +23,8 @@ if (endpoint) {
   document.head.append(script);
 }
 
-// Counts one event, e.g. track("image-processed", 4) → "upscale/image-processed/4x", track("donate-clicked").
-export function track(event, scale) {
-  const name = scale ? `${event}/${scale}x` : event;
+// Counts one event, e.g. track("image-processed", "compact") → "upscale/image-processed/compact", track("donate-clicked").
+export function track(event, model) {
+  const name = model ? `${event}/${model}` : event;
   window.goatcounter?.count?.({ path: `upscale/${name}`, title: name, event: true });
 }

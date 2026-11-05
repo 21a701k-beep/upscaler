@@ -22,18 +22,31 @@ from spandrel import ModelLoader
 
 RELEASES = "https://github.com/xinntao/Real-ESRGAN/releases/download"
 WEIGHTS = {
-    "public/esrgan_x4.onnx": f"{RELEASES}/v0.1.0/RealESRGAN_x4plus.pth",
-    "public/esrgan_x2.onnx": f"{RELEASES}/v0.2.1/RealESRGAN_x2plus.pth",
+    "public/esrgan_x4.onnx": [f"{RELEASES}/v0.1.0/RealESRGAN_x4plus.pth"],
+    "public/esrgan_x2.onnx": [f"{RELEASES}/v0.2.1/RealESRGAN_x2plus.pth"],
+    # The compact model at Real-ESRGAN's default denoise strength of 0.5, which interpolates its strong-
+    # and weak-denoise weights halfway.
+    "public/esrgan_compact_x4.onnx": [
+        f"{RELEASES}/v0.2.5.0/realesr-general-x4v3.pth",
+        f"{RELEASES}/v0.2.5.0/realesr-general-wdn-x4v3.pth",
+    ],
 }
 
-Path("public").mkdir(exist_ok=True)
 
-for onnx_name, url in WEIGHTS.items():
+def load(url):
     weights = Path(url.rsplit("/", 1)[1])
     if not weights.exists():
         urllib.request.urlretrieve(url, weights)
+    return ModelLoader().load_from_file(weights).model.eval()
 
-    model = ModelLoader().load_from_file(weights).model.eval()
+
+Path("public").mkdir(exist_ok=True)
+
+for onnx_name, urls in WEIGHTS.items():
+    model, *others = [load(url) for url in urls]
+    if others:
+        states = [m.state_dict() for m in (model, *others)]
+        model.load_state_dict({key: sum(s[key] for s in states) / len(states) for key in states[0]})
 
     torch.onnx.export(
         model,

@@ -6,7 +6,8 @@
 
 Make images 2× or 4× larger with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) and
 [ESRGAN](https://github.com/xinntao/ESRGAN) by Xintao Wang et al., right in the browser.
-Images never leave the device: the models run locally through
+The default is Real-ESRGAN's compact model, realesr-general-x4v3: over ten times faster than the full x4plus
+and x2plus models, which stay available as slower options. Images never leave the device: the models run locally through
 [ONNX Runtime Web](https://github.com/microsoft/onnxruntime), on WebGPU (in half precision when the GPU supports
 `shader-f16`) or on WebAssembly.
 
@@ -17,12 +18,13 @@ Live at **https://cassianokc.gitlab.io/upscaler/**
 You need [Node.js](https://nodejs.org/) 22 or newer and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-uv run export.py   # downloads the Real-ESRGAN weights and writes public/esrgan_x{2,4}{,_fp16}.onnx
+uv run export.py   # downloads the Real-ESRGAN weights and writes public/esrgan_{compact_x4,x2,x4}{,_fp16}.onnx
 npm install
 npm run dev        # http://localhost:5173
 ```
 
-The models are not in git (64 MB each in fp32, 32 MB in fp16); `export.py` recreates them. It pins its
+The models are not in git (the full ones are 64 MB each in fp32 and 32 MB in fp16, the compact one 4.6 MB
+and 2.3 MB); `export.py` recreates them. It pins its
 dependencies in `export.py.lock`, so every run produces the same files.
 
 ### Debugging switches
@@ -97,7 +99,9 @@ Real-ESRGAN, and for releasing the code and weights openly.
 - **Real-ESRGAN** (the models used here): Xintao Wang, Liangbin Xie, Chao Dong, Ying Shan.
   *Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data*, 2021.
   [arXiv:2107.10833](https://arxiv.org/abs/2107.10833) ·
-  [code and weights](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause)
+  [code and weights](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause). The compact default,
+  [realesr-general-x4v3](https://github.com/xinntao/Real-ESRGAN/blob/master/docs/model_zoo.md), is a later, smaller
+  model from the same repository, used at its default denoise strength.
 - **ESRGAN** (the architecture Real-ESRGAN builds on): Xintao Wang, Ke Yu, Shixiang Wu, Jinjin Gu, Yihao Liu,
   Chao Dong, Chen Change Loy, Yu Qiao, Xiaoou Tang.
   *ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks*, ECCV 2018 Workshops.

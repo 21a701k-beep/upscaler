@@ -7,13 +7,19 @@ import { detectPlatform } from "./platform.js";
 // would be the app itself, which needs a document; ORT's standalone module runs alone.
 ort.env.wasm.wasmPaths = { mjs: ortModule, wasm: ortWasm };
 
-// Each tile reads `pad` pixels of context past its edges. Real-ESRGAN's default of 10 leaves visible
-// seams on fine detail. x2plus pixel-unshuffles its input onto a half-resolution grid, so it needs twice
-// the tile and padding for the same memory and context, and tile sides must be multiples of 4.
-// ponytail: x2 pad 96 still leaves ~2 levels mean error on random 3px noise; 128 removes it at ~1.3x the cost.
-const TILING = {
-  4: { tile: 128, pad: 48, multiple: 1 },
-  2: { tile: 256, pad: 96, multiple: 4 },
+// Each model's ONNX file (from export.py), scale and tiling. Each tile reads `pad` pixels of context past its
+// edges; upscale.test.js checks that tiles join up with these settings.
+// - compact (realesr-general-x4v3) is 34 3×3 convolutions at input resolution, so each output pixel sees
+//   exactly 34 px of input in every direction: pad 34 makes tiles match a single pass. Larger tiles spend less
+//   on padding; 256 measured close to the fastest on WebGPU and WASM while keeping tiles small.
+// - x4plus and x2plus see much further than any affordable padding; Real-ESRGAN's default of 10 leaves visible
+//   seams on fine detail. x2plus pixel-unshuffles its input onto a half-resolution grid, so it needs twice
+//   the tile and padding for the same memory and context, and tile sides must be multiples of 4.
+// ponytail: x2plus pad 96 still leaves ~2 levels mean error on random 3px noise; 128 removes it at ~1.3x the cost.
+export const MODELS = {
+  compact: { file: "esrgan_compact_x4", scale: 4, tile: 256, pad: 34, multiple: 1 },
+  x2plus: { file: "esrgan_x2", scale: 2, tile: 256, pad: 96, multiple: 4 },
+  x4plus: { file: "esrgan_x4", scale: 4, tile: 128, pad: 48, multiple: 1 },
 };
 
 let current = { key: null, session: null };
@@ -42,17 +48,17 @@ function yieldToPage() {
   });
 }
 
-const modelUrl = (scale, precision) =>
-  `${import.meta.env.BASE_URL}esrgan_x${scale}${precision === "fp16" ? "_fp16" : ""}.onnx`;
+const modelUrl = (model, precision) =>
+  `${import.meta.env.BASE_URL}${MODELS[model].file}${precision === "fp16" ? "_fp16" : ""}.onnx`;
 
-async function createSession(scale, backend, precision) {
+async function createSession(model, backend, precision) {
   const t0 = performance.now();
   // The default "bucket" cache rounds buffers up to size buckets and keeps them per bucket; with every tile
   // the same shape, "simple" reuses exact-size buffers and holds GPU memory at one tile's worth.
   const provider = backend === "webgpu" ? { name: backend, storageBufferCacheMode: "simple" } : backend;
-  const session = await ort.InferenceSession.create(modelUrl(scale, precision), { executionProviders: [provider] });
+  const session = await ort.InferenceSession.create(modelUrl(model, precision), { executionProviders: [provider] });
   backends.set(session, backend);
-  console.info(`Loaded the ${scale}× ${precision} model on ${backend} in ${Math.round(performance.now() - t0)} ms`);
+  console.info(`Loaded the ${model} ${precision} model on ${backend} in ${Math.round(performance.now() - t0)} ms`);
   return session;
 }
 
@@ -60,8 +66,8 @@ async function createSession(scale, backend, precision) {
 // path is used, falling back to WASM with fp32 if the GPU session can't be created or has failed.
 // Only one model is held at a time: switching releases the previous session, once its last tile has
 // finished, before the next one loads, so two models never hold memory together.
-export function loadSession(scale, forced) {
-  const key = forced ? `${scale}:${forced.backend}:${forced.precision}` : `${scale}${gpuLost ? ":wasm" : ""}`;
+export function loadSession(model, forced) {
+  const key = forced ? `${model}:${forced.backend}:${forced.precision}` : `${model}${gpuLost ? ":wasm" : ""}`;
   if (current.key === key) return current.session;
   const released = (current.session ?? Promise.resolve()).then(
     async (session) => {
@@ -74,14 +80,14 @@ export function loadSession(scale, forced) {
   const platform = () => (gpuLost ? { backend: "wasm", precision: "fp32" } : detectPlatform());
   const session = released.then(() =>
     forced
-      ? createSession(scale, forced.backend, forced.precision)
+      ? createSession(model, forced.backend, forced.precision)
       : Promise.resolve(platform()).then(async ({ backend, precision }) => {
           try {
-            return await createSession(scale, backend, precision);
+            return await createSession(model, backend, precision);
           } catch (err) {
             if (backend === "wasm") throw err;
-            console.warn(`Could not load the ${scale}× ${precision} model on ${backend}; using WASM: ${err?.message ?? err}`);
-            return createSession(scale, "wasm", "fp32");
+            console.warn(`Could not load the ${model} ${precision} model on ${backend}; using WASM: ${err?.message ?? err}`);
+            return createSession(model, "wasm", "fp32");
           }
         }),
   );
@@ -109,18 +115,18 @@ function readTile(bitmap, x0, y0, tw, th) {
 // model always sees one input shape and the GPU buffer cache never holds buffers for other shapes.
 export async function* upscaleStrips(
   bitmap,
-  scale,
+  model,
   {
     signal,
     onTile = () => {},
     backend,
     precision = "fp32",
-    tile = TILING[scale].tile,
-    pad = TILING[scale].pad,
+    tile = MODELS[model].tile,
+    pad = MODELS[model].pad,
   } = {},
 ) {
-  const session = await loadSession(scale, backend && { backend, precision });
-  const { multiple } = TILING[scale];
+  const session = await loadSession(model, backend && { backend, precision });
+  const { scale, multiple } = MODELS[model];
   const { width, height } = bitmap;
   const outWidth = width * scale;
   const size = Math.ceil((tile + 2 * pad) / multiple) * multiple;
