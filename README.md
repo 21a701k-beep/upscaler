@@ -6,10 +6,10 @@
 
 Make images 2× or 4× larger with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) and
 [ESRGAN](https://github.com/xinntao/ESRGAN) by Xintao Wang et al., right in the browser.
-The default is Real-ESRGAN's compact model, realesr-general-x4v3: over ten times faster than the full x4plus
-and x2plus models, which stay available as slower options. Images never leave the device: the models run locally through
-[ONNX Runtime Web](https://github.com/microsoft/onnxruntime), on WebGPU (in half precision when the GPU supports
-`shader-f16`) or on WebAssembly.
+The default is Real-ESRGAN's compact model, realesr-general-x4v3, over ten times faster than the full 4× model;
+the full x4plus and x2plus models stay available as slower options. Images never leave the device: the models run
+locally through [ONNX Runtime Web](https://github.com/microsoft/onnxruntime), on WebGPU (in half precision when
+the GPU supports `shader-f16`) or on WebAssembly.
 
 Live at **https://cassianokc.gitlab.io/upscaler/**
 

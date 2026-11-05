@@ -172,7 +172,7 @@ function Footer({ onDonate }) {
         <summary>How it works</summary>
         <p>
           Upscaler makes photos and drawings 2× or 4× larger with Real-ESRGAN, a family of neural networks trained to
-          restore detail. By default it uses the compact one, over ten times faster than the full models.
+          restore detail. By default it uses the compact one, over ten times faster than the full 4× model.
           It runs entirely in your browser: the model is downloaded to this page and runs on your graphics card through
           WebGPU, or on the processor through WebAssembly, so your images are never uploaded. Pick a few images or a whole
           folder; each result is saved as a PNG that keeps the original's color profile, and a folder downloads as one zip.
@@ -400,9 +400,9 @@ export default function App() {
               <div className="field-label">
                 <label htmlFor="model">Model</label>
                 <Help>
-                  Real-ESRGAN Compact is Real-ESRGAN's small model: over ten times faster than the full ones, with close
-                  results. The full models can bring out a little more texture. The number is how much bigger each side
-                  gets: at 4×, 1000×750 becomes 4000×3000. Changing it restarts the current run.
+                  Real-ESRGAN Compact is Real-ESRGAN's small model: over ten times faster than the full 4× one, with
+                  close results. The full models can bring out a little more texture. The number is how much bigger each
+                  side gets: at 4×, 1000×750 becomes 4000×3000. Changing it restarts the current run.
                 </Help>
               </div>
               <select id="model" className="button" value={model} onChange={(e) => setModel(e.target.value)}>

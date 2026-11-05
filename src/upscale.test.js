@@ -115,7 +115,9 @@ const SEAM_LIMITS = {
   x4plus: { mean: 1, max: 31 },
 };
 
-test.for(Object.entries(SEAM_LIMITS))("%s tiled black/white checkerboard matches a single pass", async ([model, limit]) => {
+// Every model must have limits here, or its test fails.
+test.for(Object.keys(MODELS))("%s tiled black/white checkerboard matches a single pass", async (model) => {
+  const limit = SEAM_LIMITS[model];
   const { mean, max } = await seamError(model);
   expect(mean).toBeLessThan(limit.mean);
   expect(max).toBeLessThanOrEqual(limit.max);
