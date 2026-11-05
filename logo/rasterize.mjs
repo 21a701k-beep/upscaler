@@ -1,8 +1,8 @@
 // Renders the versions of the mark that have to be PNG: a 32px favicon for browsers without SVG favicons,
-// the 180px Apple touch icon (opaque, which iOS requires) and the 1200×630 social preview. Run after
-// generate.py, from the repository root:
+// the opaque app icons (180px for Apple, which iOS requires, and 192/512px for the web app manifest), and the
+// 1200×630 social preview. Run after generate.py, from the repository root:
 //
-//   node logo/rasterize.mjs    # writes public/favicon-32.png, apple-touch-icon.png and og-image.png
+//   node logo/rasterize.mjs    # writes public/favicon-32.png, apple-touch-icon.png, icon-*.png and og-image.png
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
@@ -23,14 +23,22 @@ await render("favicon-32.png", 32, 32, `<div style="width: 32px; height: 32px">$
   transparent: true,
 });
 
-await render(
-  "apple-touch-icon.png",
-  180,
-  180,
-  `<div style="box-sizing: border-box; width: 180px; height: 180px; padding: 26px; background: #ffffff">
-    ${svg("logo.svg")}
-  </div>`,
-);
+// The mark on white, inset by `inset` of the side. Maskable icons get more: Android crops them to as little as
+// a circle 80% wide, which a square fits in only at under 57% of the side.
+const appIcon = (name, side, inset) =>
+  render(
+    name,
+    side,
+    side,
+    `<div style="box-sizing: border-box; width: ${side}px; height: ${side}px; padding: ${side * inset}px; background: #ffffff">
+      ${svg("logo.svg")}
+    </div>`,
+  );
+
+await appIcon("apple-touch-icon.png", 180, 26 / 180);
+await appIcon("icon-192.png", 192, 26 / 180);
+await appIcon("icon-512.png", 512, 26 / 180);
+await appIcon("icon-maskable-512.png", 512, 0.22);
 
 // The app's light ground and type, as in the identity study's lockup.
 await render(

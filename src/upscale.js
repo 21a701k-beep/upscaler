@@ -1,5 +1,11 @@
 import * as ort from "onnxruntime-web/webgpu";
+import ortModule from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url";
+import ortWasm from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url";
 import { detectPlatform } from "./platform.js";
+
+// ORT runs each WASM thread as a worker loading the module ORT was imported from. Bundled into the app, that
+// would be the app itself, which needs a document; ORT's standalone module runs alone.
+ort.env.wasm.wasmPaths = { mjs: ortModule, wasm: ortWasm };
 
 // Each tile reads `pad` pixels of context past its edges. Real-ESRGAN's default of 10 leaves visible
 // seams on fine detail. x2plus pixel-unshuffles its input onto a half-resolution grid, so it needs twice

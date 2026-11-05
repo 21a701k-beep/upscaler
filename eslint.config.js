@@ -14,7 +14,11 @@ export default defineConfig([
     },
   },
   {
-    files: ["*.config.js", "logo/*.mjs"],
+    files: ["*.config.js", "logo/*.mjs", "e2e/*.mjs"],
     languageOptions: { globals: globals.node },
+  },
+  {
+    files: ["src/sw.js"],
+    languageOptions: { globals: { ...globals.serviceworker, __BUILD__: "readonly" } },
   },
 ]);

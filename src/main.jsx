@@ -15,6 +15,25 @@ Sentry.init({
   integrations: [Sentry.consoleLoggingIntegration({ levels: ["log", "info", "warn", "error"] })],
 });
 
+// Production only: in dev, a cached page would hide edits, and Vite sends the isolation headers itself.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  // A first visit isn't cross-origin isolated (see sw.js): reload once the worker takes over. Only then, so a
+  // browser that ignores the worker's headers isn't reloaded again, mid-batch, by each deploy's new worker.
+  const firstVisit = !navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!firstVisit || crossOriginIsolated) return;
+    try {
+      sessionStorage.setItem("isolation-reload", "1");
+    } catch {
+      // Without storage, the reload counts as a second page view.
+    }
+    location.reload();
+  });
+  navigator.serviceWorker
+    .register("./sw.js")
+    .catch((err) => console.warn(`No offline support: ${err?.message ?? err}`));
+}
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Sentry.ErrorBoundary fallback={<p className="status">Something went wrong. Reload the page to try again.</p>}>

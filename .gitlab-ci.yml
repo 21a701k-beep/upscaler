@@ -32,7 +32,8 @@ lint:
     - npm run lint
 
 # Chromium, Firefox and WebKit, as locally, under a hard 4 GB cap (no swap): over it, the kernel kills a
-# browser and the job fails. The runners have no GPU, so WebGPU and fp16 cases skip.
+# browser and the job fails. The runners have no GPU, so WebGPU and fp16 cases skip. test:pwa then checks the
+# built app and its service worker.
 test:
   stage: test
   image: docker:27-cli
@@ -42,7 +43,7 @@ test:
     DOCKER_TLS_CERTDIR: "/certs"
     PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble # keep in step with the playwright devDependency
   script:
-    - docker create --name tests --memory=4g --memory-swap=4g -w /app $PLAYWRIGHT_IMAGE sh -c "npm ci --ignore-scripts && npm test"
+    - docker create --name tests --memory=4g --memory-swap=4g -w /app $PLAYWRIGHT_IMAGE sh -c "npm ci --ignore-scripts && npm test && npm run test:pwa"
     - docker cp . tests:/app
     - docker start --attach tests
 

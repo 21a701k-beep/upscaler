@@ -40,11 +40,17 @@ The console says which backend and precision were chosen, and why.
 npm run lint
 npx playwright install   # once: downloads Chromium, Firefox and WebKit
 npm test
+npm run test:pwa         # the built app: service worker, isolation, offline
 ```
 
 The tests run in all three browsers. WebGPU cases are skipped where there is no hardware adapter (headless
 Chromium only has the SwiftShader software renderer, and Playwright's Firefox has none), and fp16 cases also
 need `shader-f16`.
+
+`npm test` runs on the Vite dev server, which sends the cross-origin isolation headers itself and has no
+service worker. `npm run test:pwa` builds the app and serves it without headers, as GitLab Pages does, to check
+the service worker: that it isolates the page, that nothing is loaded from other sites, and that an upscale
+works again offline.
 
 ## Build and deploy
 
@@ -79,6 +85,7 @@ sends nothing anywhere. The two below are protected, masked CI/CD variables on t
 | `src/icc.js` | Carries the input's color profile over to the output |
 | `src/App.jsx`, `src/Viewer.jsx` | The page and the zoomable image viewer |
 | `src/analytics.js` | GoatCounter page views and events |
+| `src/sw.js` | Service worker: caches the app and the models for offline use |
 | `logo/` | The mark: its generator, SVGs, PNG renderer and identity study |
 
 ## Thanks
